@@ -1,0 +1,24 @@
+# Fly.io app config — College Exam Portal Backend
+# Deploy from: backend/ directory
+
+app = "college-exam-portal-api"   # change this to your unique app name
+primary_region = "sin"             # Singapore (closest to India)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "5000"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = "off"    # NEVER sleep — critical for exam portal
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
