@@ -54,6 +54,9 @@ export default function NewExam() {
         totalMarks: Number(form.totalMarks),
         passingMarks: Number(form.passingMarks),
         defaultNegativeMarks: Number(form.defaultNegativeMarks),
+        // Convert local IST datetime-local values → proper UTC ISO strings
+        startTime: new Date(form.startTime).toISOString(),
+        endTime: new Date(form.endTime).toISOString(),
         questionIds: [],
       };
       const exam = await api("/exams", { method: "POST", body: JSON.stringify(payload) });
