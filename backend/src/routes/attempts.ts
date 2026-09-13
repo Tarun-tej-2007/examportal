@@ -19,7 +19,8 @@ async function buildAttempt(exam: any, studentId: string) {
     options: q.options,
     marks: q.marks,
     negativeMarks: exam.negativeMarking ? (q.negativeMarks || exam.defaultNegativeMarks) : 0,
-    correctAnswer: q.correctAnswer
+    correctAnswer: q.correctAnswer,
+    explanation: q.explanation || ""
   }));
   const startedAt = new Date();
   const deadline = new Date(startedAt.getTime() + exam.durationMinutes * 60_000);
@@ -34,8 +35,15 @@ async function buildAttempt(exam: any, studentId: string) {
 
 function publicAttempt(a: any) {
   const copy = a.toObject ? a.toObject() : { ...a };
+  const exam = copy.examId || {};
+  const isSubmitted = ["submitted", "auto_submitted"].includes(copy.status);
+  const revealCorrect = isSubmitted && exam.showCorrectAnswers;
+  const revealExplanations = isSubmitted && exam.showExplanations;
+
   copy.questionSnapshot = (copy.questionSnapshot || []).map((q: any) => {
-    const { correctAnswer, ...safe } = q;
+    const { correctAnswer, explanation, ...safe } = q;
+    if (revealCorrect) safe.correctAnswer = correctAnswer;
+    if (revealExplanations) safe.explanation = explanation;
     return safe;
   });
   return copy;
