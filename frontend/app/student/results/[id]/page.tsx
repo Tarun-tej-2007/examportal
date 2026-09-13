@@ -112,29 +112,123 @@ export default function ResultPage() {
             {/* Per-question review */}
             {showAnswers && attempt.questionSnapshot?.length > 0 && (
               <div>
-                <div style={{ fontWeight: 700, color: "var(--navy)", marginBottom: "1rem" }}>Question Review</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: ".75rem" }}>
+                <div style={{ fontWeight: 700, color: "var(--navy)", marginBottom: "1rem", fontSize: "1.05rem" }}>Question Review</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   {attempt.questionSnapshot.map((q: any, i: number) => {
                     const studentAns = attempt.answers?.find((a: any) => String(a.questionId) === String(q.questionId));
                     const sAns = studentAns?.selectedAnswer;
+                    const cAns = q.correctAnswer;
+
+                    // determine if student got it right
+                    const answered = sAns !== undefined && sAns !== null && sAns !== "";
+                    const isCorrect = answered && (
+                      Array.isArray(cAns)
+                        ? JSON.stringify([...cAns].sort()) === JSON.stringify([...(Array.isArray(sAns) ? sAns : [sAns])].sort())
+                        : String(cAns) === String(sAns)
+                    );
+
+                    const borderColor = !answered ? "var(--border)" : isCorrect ? "var(--success)" : "var(--danger)";
+
                     return (
                       <div key={q.questionId} style={{
-                        border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "1rem",
+                        border: `1.5px solid ${borderColor}`,
+                        borderRadius: "var(--radius-sm)",
+                        padding: "1.1rem",
+                        background: !answered ? "var(--bg)" : isCorrect ? "rgba(34,197,94,.04)" : "rgba(239,68,68,.04)",
                       }}>
-                        <div style={{ fontSize: ".78rem", fontWeight: 600, color: "var(--muted)", marginBottom: ".35rem" }}>Q{i + 1} · {q.marks} marks</div>
-                        <div style={{ fontWeight: 600, marginBottom: ".6rem" }}>{q.questionText}</div>
-                        {exam.showStudentAnswers && (
-                          <div style={{ fontSize: ".85rem" }}>
-                            <span style={{ color: "var(--muted)" }}>Your answer: </span>
-                            <span style={{ fontWeight: 600 }}>{Array.isArray(sAns) ? sAns.join(", ") : (sAns ?? "Not answered")}</span>
+                        {/* Question header */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".5rem" }}>
+                          <span style={{ fontSize: ".78rem", fontWeight: 600, color: "var(--muted)" }}>Q{i + 1} · {q.marks} mark{q.marks !== 1 ? "s" : ""}</span>
+                          <span style={{
+                            fontSize: ".72rem", fontWeight: 700, padding: ".2rem .6rem", borderRadius: 99,
+                            background: !answered ? "#f1f5f9" : isCorrect ? "rgba(34,197,94,.15)" : "rgba(239,68,68,.15)",
+                            color: !answered ? "var(--muted)" : isCorrect ? "var(--success)" : "var(--danger)",
+                          }}>
+                            {!answered ? "Not Answered" : isCorrect ? "✓ Correct" : "✗ Incorrect"}
+                          </span>
+                        </div>
+
+                        {/* Question text */}
+                        <div style={{ fontWeight: 600, marginBottom: ".85rem", lineHeight: 1.5 }}>{q.questionText}</div>
+
+                        {/* Options */}
+                        {q.options?.length > 0 && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: ".4rem", marginBottom: ".85rem" }}>
+                            {q.options.map((opt: any, oi: number) => {
+                              const optLabel = String.fromCharCode(65 + oi); // A, B, C, D
+                              const optText = typeof opt === "object" ? opt.text : opt;
+                              const isStudentChoice = Array.isArray(sAns) ? sAns.includes(optLabel) : String(sAns) === optLabel;
+                              const isCorrectOpt = Array.isArray(cAns) ? cAns.includes(optLabel) : String(cAns) === optLabel;
+
+                              let bg = "var(--bg)";
+                              let border = "var(--border)";
+                              let textColor = "var(--text)";
+                              let labelBg = "#e2e8f0";
+                              let labelColor = "var(--muted)";
+
+                              if (exam.showCorrectAnswers && isCorrectOpt) {
+                                bg = "rgba(34,197,94,.1)"; border = "var(--success)";
+                                labelBg = "var(--success)"; labelColor = "#fff"; textColor = "var(--success)";
+                              }
+                              if (exam.showStudentAnswers && isStudentChoice && !isCorrectOpt) {
+                                bg = "rgba(239,68,68,.08)"; border = "var(--danger)";
+                                labelBg = "var(--danger)"; labelColor = "#fff"; textColor = "var(--danger)";
+                              }
+                              if (exam.showStudentAnswers && isStudentChoice && isCorrectOpt) {
+                                bg = "rgba(34,197,94,.15)"; border = "var(--success)";
+                                labelBg = "var(--success)"; labelColor = "#fff"; textColor = "var(--success)";
+                              }
+
+                              return (
+                                <div key={oi} style={{
+                                  display: "flex", alignItems: "flex-start", gap: ".6rem",
+                                  padding: ".5rem .75rem", borderRadius: "var(--radius-sm)",
+                                  border: `1px solid ${border}`, background: bg, transition: "all .15s",
+                                }}>
+                                  <span style={{
+                                    minWidth: 24, height: 24, borderRadius: "50%",
+                                    background: labelBg, color: labelColor,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontSize: ".75rem", fontWeight: 700, flexShrink: 0,
+                                  }}>{optLabel}</span>
+                                  <span style={{ fontSize: ".88rem", color: textColor, fontWeight: isCorrectOpt || isStudentChoice ? 600 : 400, paddingTop: "2px" }}>
+                                    {optText}
+                                    {exam.showStudentAnswers && isStudentChoice && !isCorrectOpt && <span style={{ marginLeft: ".4rem", fontSize: ".75rem" }}>← your answer</span>}
+                                    {exam.showCorrectAnswers && isCorrectOpt && <span style={{ marginLeft: ".4rem", fontSize: ".75rem" }}>← correct</span>}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
-                        {exam.showCorrectAnswers && q.correctAnswer !== undefined && (
-                          <div style={{ fontSize: ".85rem", marginTop: ".25rem" }}>
-                            <span style={{ color: "var(--muted)" }}>Correct answer: </span>
-                            <span style={{ fontWeight: 600, color: "var(--success)" }}>
-                              {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(", ") : q.correctAnswer}
-                            </span>
+
+                        {/* Non-MCQ answer display */}
+                        {(!q.options || q.options.length === 0) && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: ".35rem", marginBottom: ".75rem" }}>
+                            {exam.showStudentAnswers && (
+                              <div style={{ fontSize: ".85rem" }}>
+                                <span style={{ color: "var(--muted)" }}>Your answer: </span>
+                                <span style={{ fontWeight: 600 }}>{answered ? (Array.isArray(sAns) ? sAns.join(", ") : sAns) : "Not answered"}</span>
+                              </div>
+                            )}
+                            {exam.showCorrectAnswers && cAns !== undefined && (
+                              <div style={{ fontSize: ".85rem" }}>
+                                <span style={{ color: "var(--muted)" }}>Correct answer: </span>
+                                <span style={{ fontWeight: 600, color: "var(--success)" }}>{Array.isArray(cAns) ? cAns.join(", ") : cAns}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Explanation */}
+                        {exam.showExplanations && q.explanation && (
+                          <div style={{
+                            marginTop: ".5rem", padding: ".65rem .85rem",
+                            background: "rgba(99,102,241,.07)", borderRadius: "var(--radius-sm)",
+                            borderLeft: "3px solid var(--primary)",
+                          }}>
+                            <div style={{ fontSize: ".75rem", fontWeight: 700, color: "var(--primary)", marginBottom: ".2rem", textTransform: "uppercase", letterSpacing: ".04em" }}>Explanation</div>
+                            <div style={{ fontSize: ".85rem", color: "var(--text)", lineHeight: 1.55 }}>{q.explanation}</div>
                           </div>
                         )}
                       </div>
@@ -143,6 +237,7 @@ export default function ResultPage() {
                 </div>
               </div>
             )}
+
 
             <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "center" }}>
               <Link href="/student" className="btn btn-primary">← Back to Dashboard</Link>
